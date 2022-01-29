@@ -6,8 +6,8 @@ import numpy, xlrd, os
 import tkinter as tk
 
 
-def calculate_metamodel_error(input_dict: dict, output_dict: dict, metamodel, check_func=None, first_row=1, first_col=0):
-
+def calculate_metamodel_error(input_dict: dict, output_dict: dict, metamodel, check_func=None, first_row=1,
+                              first_col=0):
     root = tk.Tk()
     root.withdraw()
     excel_path = filedialog.askopenfilename()
@@ -29,7 +29,6 @@ def calculate_metamodel_error(input_dict: dict, output_dict: dict, metamodel, ch
 
 
 def convert_excel_to_xml(input_dict: dict, output_dict: dict, check_func=None, first_row=1, first_col=0):
-
     root = tk.Tk()
     root.withdraw()
     excel_path = filedialog.askopenfilename()
@@ -45,20 +44,42 @@ def convert_excel_to_xml(input_dict: dict, output_dict: dict, check_func=None, f
     input_dict.update({"values": return_dict["input"]})
     output_dict.update({"values": return_dict["output"]})
 
-    create_rstudio_xml(os.path.dirname(excel_path), input_dict, output_dict)
+    create_rstudio_xml(__get_destination_dir(), input_dict, output_dict)
 
     return {"input": input_dict, "output": output_dict}
 
 
-def __return_values(sheets, n_input, n_output, check_func=None, first_row=1, first_col=0):
+def __get_destination_dir():
 
+    xml_destination_file = os.path.join(os.path.dirname(__file__), "xml_destination.dat")
+
+    xml_destination = ""
+
+    if os.path.isfile(xml_destination_file):
+
+        with open(xml_destination_file, "r") as file:
+
+            xml_destination = file.readline().strip("\n")
+
+    if not os.path.exists(xml_destination):
+
+        root = tk.Tk()
+        root.withdraw()
+        xml_destination = filedialog.askdirectory()
+
+        with open(xml_destination_file, "w") as file:
+
+            file.write(xml_destination)
+
+    return xml_destination
+
+
+def __return_values(sheets, n_input, n_output, check_func=None, first_row=1, first_col=0):
     input_values_list = __generate_value_list(n_input)
     output_values_list = __generate_value_list(n_output)
 
     if check_func is None:
-
         def check_func(input_list):
-
             return True
 
     for sheet in sheets:
@@ -68,7 +89,6 @@ def __return_values(sheets, n_input, n_output, check_func=None, first_row=1, fir
             if type(sheet.cell_value(row, first_col)) is float:
 
                 if check_func(sheet.row_values(row, start_colx=first_col)):
-
                     input_values_list = __append_values(input_values_list, sheet, row, first_col)
                     output_values_list = __append_values(output_values_list, sheet, row, first_col + n_input)
 
@@ -85,7 +105,6 @@ def __generate_value_list(n_value) -> list:
 
 
 def __append_values(input_list: list, sheet, row, offset) -> list:
-
     for col in range(offset, offset + len(input_list)):
 
         try:
@@ -98,7 +117,6 @@ def __append_values(input_list: list, sheet, row, offset) -> list:
 
 
 def __calculate_error(input_dict, output_dict, metamodel):
-
     return {"input": input_dict, "output": output_dict}
 
 
@@ -112,7 +130,6 @@ def create_rstudio_xml(folder_path, input_dict, output_dict):
 
 
 def generate_xml(input_dict, output_dict) -> ETree.Element:
-
     root = ETree.Element("data")
     root.set("n_exp", str(len(input_dict["values"][0])))
 
@@ -193,6 +210,6 @@ def generate_SVM(return_dict, x_index, y_index):
     plt.show()
 
 
-if __name__=="__main__":
+if __name__ == "__main__":
 
-    print("Prova")
+    print(__get_destination_dir())
