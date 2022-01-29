@@ -4,6 +4,52 @@ import tkinter as tk
 import xlrd, os
 
 
+def convert_excel_to_xml_ORC_LCOE_simplified():
+
+    input_dict = {
+
+        "names": [
+
+            "T_in", "x_in",
+            "m_brine", "eta_turb"
+
+        ],
+        "units": [
+
+            "[C]", "[-]",
+            "[kg/s]", "[-]"
+
+        ]
+
+    }
+    output_dict = {
+
+        "names": [
+
+            "P_eva", "LCOE_plant"
+
+        ],
+        "units": [
+
+            "[kPa]", "[€/kWh]"
+
+        ]
+
+    }
+
+    def check_func(input_list: list):
+
+        try:
+
+            return float(input_list[5]) > 0 and int(input_list[5]) < 100
+
+        except:
+
+            return False
+
+    return convert_excel_to_xml(input_dict, output_dict, first_row=4, first_col=1, check_func=check_func)
+
+
 def convert_excel_to_xml_ORC_LCOE():
 
     input_dict = {
@@ -202,8 +248,16 @@ def convert_excel_to_xml_flash():
     }
     output_dict = {
 
-        "names": ["LCOE"],
-        "units": ["€/kWh"]
+        "names": [
+
+            "W_net", "eta_stage", "LCOE", "Cost_tot"
+
+        ],
+        "units": [
+
+            "[kW]", "[-]", "[€/kWh]", "[€]"
+
+        ]
 
     }
 
@@ -411,5 +465,5 @@ def convert_excel_to_xml_pomarance():
 
 if __name__ == '__main__':
 
-    return_dict = convert_excel_to_xml_flash()
+    return_dict = convert_excel_to_xml_ORC_LCOE_simplified()
     print(return_dict)

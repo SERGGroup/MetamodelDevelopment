@@ -89,6 +89,7 @@ def __return_values(sheets, n_input, n_output, check_func=None, first_row=1, fir
             if type(sheet.cell_value(row, first_col)) is float:
 
                 if check_func(sheet.row_values(row, start_colx=first_col)):
+
                     input_values_list = __append_values(input_values_list, sheet, row, first_col)
                     output_values_list = __append_values(output_values_list, sheet, row, first_col + n_input)
 
@@ -130,6 +131,7 @@ def create_rstudio_xml(folder_path, input_dict, output_dict):
 
 
 def generate_xml(input_dict, output_dict) -> ETree.Element:
+
     root = ETree.Element("data")
     root.set("n_exp", str(len(input_dict["values"][0])))
 
