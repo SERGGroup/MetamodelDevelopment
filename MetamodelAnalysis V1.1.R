@@ -21,26 +21,26 @@ library(xml2)
 
 #<----------------------- DATA SETTINGS FUNCTION ------------------------>
 
-getPrameterSet <- function(isProductionWell = FALSE, isPeacemanAnalysis = FALSE, getNameAndDimensionOnly = FALSE, getAlsoFirstTryValues = FALSE){
+getPrameterSet <- function(getNameAndDimensionOnly = FALSE, getAlsoFirstTryValues = FALSE){
   
   namesArray = "T_in"
   dimensionArray = "[ C ]"
   lob = 0;
-  upb = 40;
+  upb = 50;
   meanValue = 15;
   ignoreInSensitivity = FALSE
   
   namesArray = c(namesArray, "P_in")
   dimensionArray = c(dimensionArray, "[ MPa ]")
-  lob = c(lob, 7.5);
+  lob = c(lob, 8);
   upb = c(upb, 15);
-  meanValue = c(meanValue, 8);
+  meanValue = c(meanValue, 10);
   ignoreInSensitivity = c(ignoreInSensitivity, FALSE);
   
-  namesArray = c(namesArray, "Re")
+  namesArray = c(namesArray, "Re_ext")
   dimensionArray = c(dimensionArray, "[ - ]")
-  lob = c(lob, 2000);
-  upb = c(upb, 80000);
+  lob = c(lob, 5000);
+  upb = c(upb, 100000);
   meanValue = c(meanValue, 40000);
   ignoreInSensitivity = c(ignoreInSensitivity, FALSE);
   
@@ -363,7 +363,7 @@ importXMLOutputFile <- function(xmlFileName){
   
 }
 
-importTXTOutputFile <- function(isProductionWell = FALSE, isPeacemanAnalysis = FALSE, getAlsoFirstTryValues = FALSE, automaticSensitivityAnalysis = FALSE, outputfileName = "outputData.txt", conditionCheck = -1){
+importTXTOutputFile <- function(outputfileName = "outputData.txt", conditionCheck = -1){
   
   try({
     
@@ -373,7 +373,7 @@ importTXTOutputFile <- function(isProductionWell = FALSE, isPeacemanAnalysis = F
   })
   
   returnData = read.table(outputfileName, header = FALSE)
-  expInputNames = (getPrameterSet(isProductionWell, isPeacemanAnalysis, getAlsoFirstTryValues = getAlsoFirstTryValues))["dataNamesArray"]
+  expInputNames = (getPrameterSet(getAlsoFirstTryValues = getAlsoFirstTryValues))["dataNamesArray"]
   
   updatedReturnData <- vector()
   updatedExpData <- vector()
@@ -602,9 +602,9 @@ generateMetamodels <- function(data, metamodelType = "km", metamodelFormula = ~1
 
 #<------------------- SENSITIVITY ANALYSIS FUNCTION --------------------->
 
-generateSample <- function(isProductionWell = FALSE, isPeacemanAnalysis = FALSE, getAlsoFirstTryValues = FALSE, gaussianDistribution = FALSE, sampleNumber = 10000, getMeanValues = FALSE, getDeltaValue = FALSE){
+generateSample <- function(xmlFileName, getAlsoFirstTryValues = FALSE, gaussianDistribution = FALSE, sampleNumber = 10000, getMeanValues = FALSE, getDeltaValue = FALSE){
   
-  parameterValue = getPrameterValues(isProductionWell, isPeacemanAnalysis, getAlsoFirstTryValues = getAlsoFirstTryValues)
+  parameterValue = getPrameterValues(xmlFileName)
   samplesMatrix <- matrix()
   samplesNameArray <- array()
   
@@ -613,7 +613,6 @@ generateSample <- function(isProductionWell = FALSE, isPeacemanAnalysis = FALSE,
   colnames(limitsMatrix) = parameterValue$dataNamesArray
   rownames(limitsMatrix) = c("lob", "upb", "meanValue")
   
-  limitsMatrix = convertPermeabiltyInDarcy(limitsMatrix)
   limitsMatrix = as.data.frame(transposeMatrix(limitsMatrix))
   
   j = 0
@@ -679,11 +678,11 @@ generateSample <- function(isProductionWell = FALSE, isPeacemanAnalysis = FALSE,
   
 }
 
-performSensitivityAnalysis <- function(metamodel, isProductionWell = FALSE, isPeacemanAnalysis = FALSE, getAlsoFirstTryValues = FALSE, calculateSobolIndex = TRUE, nSample = 10000, calculateOnlyInMeanPoint = FALSE, parameterValue = data.frame(), optionalAdditionalParameter = list(), plotRelativeValues = TRUE){
+performSensitivityAnalysis <- function(metamodel, xmlFileName, getAlsoFirstTryValues = FALSE, calculateSobolIndex = TRUE, nSample = 10000, calculateOnlyInMeanPoint = FALSE, parameterValue = data.frame(), optionalAdditionalParameter = list(), plotRelativeValues = TRUE){
   
   metamodelClass = (class(metamodel))[1]
   metamodelName = getMetamodelName(metamodel)
-  metamodelDimension = getMetamodelDimension(metamodel, isProductionWell, isPeacemanAnalysis)
+  metamodelDimension = getMetamodelDimension(metamodel, xmlFileName)
   
   if("printData" %in% names(optionalAdditionalParameter)){
     
@@ -707,12 +706,12 @@ performSensitivityAnalysis <- function(metamodel, isProductionWell = FALSE, isPe
         returnArray = matrix(returnArray, length(returnArray), 1)
         colnames(returnArray) = metamodelName
         
-        return(applyMetamodelModifier(returnArray, isProductionWell, isPeacemanAnalysis, TRUE))
+        return(applyMetamodelModifier(returnArray, xmlFileName, TRUE))
         
       }
       
-      sample1 <- generateSample(isProductionWell, isPeacemanAnalysis, getAlsoFirstTryValues, gaussianDistribution = FALSE, sampleNumber = nSample)
-      sample2 <- generateSample(isProductionWell, isPeacemanAnalysis, getAlsoFirstTryValues, gaussianDistribution = FALSE, sampleNumber = nSample)
+      sample1 <- generateSample(xmlFileName, gaussianDistribution = FALSE, sampleNumber = nSample)
+      sample2 <- generateSample(xmlFileName, gaussianDistribution = FALSE, sampleNumber = nSample)
       
       indices.sobol <- sobol2007(f1,sample1,sample2) # utilisation de la fonction sobol2007
       
@@ -747,18 +746,18 @@ performSensitivityAnalysis <- function(metamodel, isProductionWell = FALSE, isPe
       
       linearIndex = metamodel$b
       B = metamodel$B
-      deltaValues = generateSample(isProductionWell, isPeacemanAnalysis, getAlsoFirstTryValues, getDeltaValue = TRUE)
+      deltaValues = generateSample(xmlFileName, getAlsoFirstTryValues, getDeltaValue = TRUE)
       
       if (length(parameterValue) == 0){
         
         if (calculateOnlyInMeanPoint){
           
           nSample = 1
-          parameterValue <- generateSample(isProductionWell, isPeacemanAnalysis, getAlsoFirstTryValues, sampleNumber = nSample, getMeanValues = TRUE)
+          parameterValue <- generateSample(xmlFileName, getAlsoFirstTryValues, sampleNumber = nSample, getMeanValues = TRUE)
           
         } else {
           
-          parameterSet = getPrameterValues(isProductionWell, isPeacemanAnalysis, getAlsoFirstTryValues = getAlsoFirstTryValues)
+          parameterSet = getPrameterValues(xmlFileName)
           expData <- optimalExperimentDesign(nSample, parameter = parameterSet, displayGraph = FALSE)
           parameterValue <- vector()
           j = 0
@@ -893,7 +892,7 @@ performSensitivityAnalysis <- function(metamodel, isProductionWell = FALSE, isPe
   } else {
     
     set.seed(0)
-    sample1 <- generateSample(isProductionWell = isProductionWell, isPeacemanAnalysis = isPeacemanAnalysis, gaussianDistribution = TRUE, sampleNumber = nSample)
+    sample1 <- generateSample(xmlFileName, gaussianDistribution = TRUE, sampleNumber = nSample)
     z1<-f1(sample1)
     
     if (plotData) {
@@ -2604,11 +2603,12 @@ transposeMatrix <- function(inputMatrix){
 
 
 
+
 # ------------------------------------------------------------ #
 # ------------------------------------------------------------ #
 # ------------------------------------------------------------ #
 
-#CALCULATION
+#                       CALCULATION
 
 # ------------------------------------------------------------ #
 # ------------------------------------------------------------ #
@@ -2617,7 +2617,7 @@ transposeMatrix <- function(inputMatrix){
 
 # <-------------- EXPERIMENTAL DESIGN GENERATION -------------->
 
-n_simu = 450;
+n_simu = 300;
 
 parameterSet = getPrameterSet()
 expData <- optimalExperimentDesign(n_simu, parameter = parameterSet, displayGraph = TRUE)
@@ -2628,7 +2628,7 @@ head(expData)
 # <----------------- METAMODEL GENERATION -------------------->
 
 data = importXMLOutputFile("data.xml")
-metamodelArr    <- generateMetamodels(data, metamodelType = "rsm", residualSigmaMax = 1)
+metamodelArr    <- generateMetamodels(data, metamodelType = "rsm", residualSigmaMax = 2)
 metamodelArr_km <- generateMetamodels(data, metamodelType = "km")
 
 displayErrorData()
@@ -2636,8 +2636,8 @@ displayErrorData()
 
 # <------------------- SENSITIVITY ANALYSIS ------------------>
 
-performSensitivityAnalysis(metamodelArr[[1]], calculateSobolIndex = TRUE,  nSample = 50)
-performSensitivityAnalysis(metamodelArr_km[[2]], calculateSobolIndex = TRUE, nSample = 35000)
+performSensitivityAnalysis(metamodelArr[[1]], "data.xml", calculateSobolIndex = TRUE,  nSample = 100)
+performSensitivityAnalysis(metamodelArr_km[[1]], "data.xml", calculateSobolIndex = TRUE, nSample = 10000)
 
 
 
@@ -2650,13 +2650,11 @@ plot2DGraph("data.xml", metamodelArr, 4, "m_brine", "x_in")
 # <-------------------- 3D PLOT GENERATION ------------------->
 
 
-plot3DGraph("data.xml", metamodelArr_km, 4, 
-            "T_in", 
-            "RE")
+plot3DGraph("data.xml", metamodelArr_km, 1, 
+            "P_in", "Re")
 
 plot3DGraph("data.xml",metamodelArr, 1, 
-            "T_in", 
-            "Re")
+            "P_in", "Re")
 
 
 # <----------------- SPECIAL PLOT GENERATION ----------------->
