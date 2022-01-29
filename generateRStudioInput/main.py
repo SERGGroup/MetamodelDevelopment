@@ -1,4 +1,4 @@
-from xml_generation import convert_excel_to_xml, create_rstudio_xml
+from generateRStudioInput.xml_generation import convert_excel_to_xml, create_rstudio_xml
 from tkinter import filedialog
 import tkinter as tk
 import xlrd, os
@@ -180,6 +180,36 @@ def convert_excel_to_xml_ORC():
     def check_func(input_list: list):
 
         return input_list[8] > 0 and input_list[0] > 150
+
+    return convert_excel_to_xml(input_dict, output_dict, first_row=4, first_col=1, check_func=check_func)
+
+
+def convert_excel_to_xml_flash():
+
+    input_dict = {
+
+        "names": [
+
+            "T_in", "m_fluid", "x_sep", "eta_turb"
+
+        ],
+        "units": [
+
+            "[C]", "[kg/s]", "[-]", "[-]"
+
+        ]
+
+    }
+    output_dict = {
+
+        "names": ["LCOE"],
+        "units": ["€/kWh"]
+
+    }
+
+    def check_func(input_list: list):
+
+        return True
 
     return convert_excel_to_xml(input_dict, output_dict, first_row=4, first_col=1, check_func=check_func)
 
@@ -381,6 +411,5 @@ def convert_excel_to_xml_pomarance():
 
 if __name__ == '__main__':
 
-    "code"
-    return_dict = convert_excel_to_xml_ORC_new()
+    return_dict = convert_excel_to_xml_flash()
     print(return_dict)
